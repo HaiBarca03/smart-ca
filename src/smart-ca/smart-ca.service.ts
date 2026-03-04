@@ -58,7 +58,7 @@ export class SmartCaService {
             certBase64: string, 
             docType: string, 
             role: string, 
-            signerName: string
+            // signerName: string
         ) {
         this.logger.debug(`Certificate: ${certBase64.substring(0, 50)}...`);
         const url = `${this.restUrl}/signature/calculateHash`;
@@ -88,7 +88,7 @@ export class SmartCaService {
 
         const signatureText = 
             `Verified by: VNPT SmartCA\n` +
-            `Signed by: ${signerName}\n` +
+            // `Signed by: ${signerName}\n` +
             `Signed date: ${dateStr} ${timeStr}`;
 
         const data: CalculateHashDto = {

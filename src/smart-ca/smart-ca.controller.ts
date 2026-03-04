@@ -6,10 +6,10 @@ import { createReadStream } from 'fs';
 import * as path from 'path';
 import { SmartCaService } from './smart-ca.service';
 import { removeVietnameseTones } from 'src/utils/text.util';
-import { VnptWebhookDto } from './dto/res-smart-ca.dto';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { LarkDriveService } from './lark-drive.service';
+import { VnptWebhookDto } from './dto/vnpt.webhook.dto';
 
 @ApiTags('smart-ca')
 @Controller('smart-ca')
@@ -27,18 +27,49 @@ export class SmartCaController {
         this.anycross_webhook_url = this.configService.get<string>('ANYCROSS_WEB_HOOK_URL') ?? '';
     }
 
-    @ApiOperation({ summary: 'Initiate signing process' })
-    @ApiConsumes('multipart/form-data')
+    @ApiTags('smart-ca')
+    @ApiOperation({ summary: 'Initiate signing process (Base64)' })
+    @ApiConsumes('application/json')
     @ApiBody({
-        schema: {
-            type: 'object',
-            properties: {
-                file: {
-                    type: 'string',
-                    format: 'binary',
-                },
-            },
+    schema: {
+        type: 'object',
+        required: ['fileBase64'],
+        properties: {
+        fileBase64: {
+            type: 'string',
+            description: 'Base64 encoded PDF file',
+            example: 'JVBERi0xLjQKJcfs...',
         },
+        fileName: {
+            type: 'string',
+            description: 'Original file name',
+            example: 'contract.pdf',
+        },
+        docType: {
+        type: 'string',
+        description: 'Document template type',
+        enum: [
+          'HSH_HĐKXĐ',
+          'HSH_HĐTV',
+          'HSH_HĐCTV',
+          'HSH_HĐĐTN',
+          'HSH_HĐXĐ',
+          'HSH_BBTTCV',
+        ],
+            example: 'HSH_HĐKXĐ / HSH_HĐTV / HSH_HĐCTV / HSH_HĐĐTN / HSH_HĐXĐ /HSH_BBTTCV',
+        },
+        role: {
+            type: 'string',
+            description: 'Signer role',
+            example: 'BEN_A or BEN_B',
+        },
+        // signerName: {
+        //     type: 'string',
+        //     description: 'Full name of signer',
+        //     example: 'Nguyen Van A',
+        // },
+        },
+    },
     })
     @Post('init-sign')
     async initSign(
@@ -46,7 +77,7 @@ export class SmartCaController {
         @Body('fileName') fileName: string,     
         @Body('docType') docType: string,
         @Body('role') role: string,
-        @Body('signerName') signerName: string,
+        // @Body('signerName') signerName: string,
     ) {
         this.logger.log('Received init-sign request with Base64');
 
@@ -66,7 +97,7 @@ export class SmartCaController {
         const serialNumber = userCert.serial_number;
 
         // 2. Calculate Hash (Sử dụng cleanBase64 trực tiếp)
-        const hashData = await this.smartCaService.calculateHash(cleanBase64, certBase64, docType, role, signerName);
+        const hashData = await this.smartCaService.calculateHash(cleanBase64, certBase64, docType, role);
         const hash = hashData.hashResps[0].hash;
         const fileID = hashData.hashResps[0].fileID;
         const transIdHash = hashData.tranId;
@@ -91,8 +122,30 @@ export class SmartCaController {
         return result;
     }
 
-    // Webhook to receive signed document info from CA
-    @ApiOperation({ summary: 'API webhook nhận thông tin ký số từ CA' })
+    @ApiTags('smart-ca')
+    @ApiOperation({ summary: 'Webhook nhận thông tin ký số từ CA' })
+
+    @ApiBody({
+    type: VnptWebhookDto,
+    })
+
+    @ApiResponse({
+    status: 200,
+    description: 'Webhook received successfully',
+    schema: {
+        example: {
+        status: 'success',
+        message: 'Webhook processed and file saved',
+        fileName: 'contract_signed.pdf',
+        downloadUrl: 'https://yourdomain.com/smart-ca/download/contract_signed.pdf',
+        },
+    },
+    })
+
+    @ApiResponse({
+    status: 400,
+    description: 'Invalid webhook data',
+    })
     @Post('webhook/callback')
     async handleCaWebhook(@Body() body: VnptWebhookDto) {
         this.logger.log(`[DEBUG-WEBHOOK] Raw Body: ${JSON.stringify(body)}`);
