@@ -1,5 +1,5 @@
 import { Controller, Post, Body, HttpException, HttpStatus, UseInterceptors, UploadedFile, Logger, Get, Param, Res, StreamableFile, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiConsumes } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse, ApiConsumes, ApiParam } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { createReadStream } from 'fs';
@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { LarkDriveService } from './lark-drive.service';
 import { VnptWebhookDto } from './dto/vnpt.webhook.dto';
+import { CheckStatusResponseDto } from './dto/check-status-responsedto';
 
 @ApiTags('smart-ca')
 @Controller('smart-ca')
@@ -234,8 +235,25 @@ export class SmartCaController {
     }
 
 
+    @ApiTags('smart-ca')
+    @ApiOperation({ summary: 'Kiểm tra trạng thái giao dịch ký số' })
 
-    
+    @ApiParam({
+    name: 'transactionId',
+    description: 'Transaction ID trả về từ init-sign',
+    example: 'c0aec40c-9adb-4b97-8b00-2ac1cbc6e2c0',
+    })
+
+    @ApiResponse({
+    status: 200,
+    description: 'Trả về trạng thái giao dịch',
+    type: CheckStatusResponseDto,
+    })
+
+    @ApiResponse({
+    status: 400,
+    description: 'Transaction ID is required',
+    })    
     @Get('check-status/:transactionId')
     async checkStatus(@Param('transactionId') transactionId: string) {
         this.logger.log(`Received check-status request for transaction: ${transactionId}`);
