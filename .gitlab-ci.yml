@@ -1,0 +1,14 @@
+stages:
+  - build-test
+
+build_test:
+  stage: build-test
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  script:
+    - echo "Starting build validation..."
+    - docker build -t test-build-image:latest .
+    - echo "Success!"
+  only:
+    - main
