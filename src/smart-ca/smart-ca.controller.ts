@@ -10,7 +10,9 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { LarkDriveService } from './lark-drive.service';
 import { VnptWebhookDto } from './dto/vnpt.webhook.dto';
-import { CheckStatusResponseDto } from './dto/check-status-responsedto';
+import { CheckStatusResponseDto } from './dto/check-status-response.dto';
+import { InitSignResponseDto } from './dto/init-sign-response.dto';
+import { InitSignRequestDto } from './dto/init-sign-request.dto';
 
 @ApiTags('smart-ca')
 @Controller('smart-ca')
@@ -31,46 +33,11 @@ export class SmartCaController {
     @ApiTags('smart-ca')
     @ApiOperation({ summary: 'Initiate signing process (Base64)' })
     @ApiConsumes('application/json')
-    @ApiBody({
-    schema: {
-        type: 'object',
-        required: ['fileBase64'],
-        properties: {
-        fileBase64: {
-            type: 'string',
-            description: 'Base64 encoded PDF file',
-            example: 'JVBERi0xLjQKJcfs...',
-        },
-        fileName: {
-            type: 'string',
-            description: 'Original file name',
-            example: 'contract.pdf',
-        },
-        docType: {
-        type: 'string',
-        description: 'Document template type',
-        enum: [
-          'HSH_HĐKXĐ',
-          'HSH_HĐTV',
-          'HSH_HĐCTV',
-          'HSH_HĐĐTN',
-          'HSH_HĐXĐ',
-          'HSH_BBTTCV',
-        ],
-            example: 'HSH_HĐKXĐ / HSH_HĐTV / HSH_HĐCTV / HSH_HĐĐTN / HSH_HĐXĐ /HSH_BBTTCV',
-        },
-        role: {
-            type: 'string',
-            description: 'Signer role',
-            example: 'BEN_A or BEN_B',
-        },
-        // signerName: {
-        //     type: 'string',
-        //     description: 'Full name of signer',
-        //     example: 'Nguyen Van A',
-        // },
-        },
-    },
+    @ApiBody({ type: InitSignRequestDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Signing initiated successfully',
+        type: InitSignResponseDto,
     })
     @Post('init-sign')
     async initSign(
@@ -125,11 +92,9 @@ export class SmartCaController {
 
     @ApiTags('smart-ca')
     @ApiOperation({ summary: 'Webhook nhận thông tin ký số từ CA' })
-
     @ApiBody({
     type: VnptWebhookDto,
     })
-
     @ApiResponse({
     status: 200,
     description: 'Webhook received successfully',
@@ -142,7 +107,6 @@ export class SmartCaController {
         },
     },
     })
-
     @ApiResponse({
     status: 400,
     description: 'Invalid webhook data',
@@ -234,22 +198,18 @@ export class SmartCaController {
         }
     }
 
-
     @ApiTags('smart-ca')
     @ApiOperation({ summary: 'Kiểm tra trạng thái giao dịch ký số' })
-
     @ApiParam({
     name: 'transactionId',
     description: 'Transaction ID trả về từ init-sign',
     example: 'c0aec40c-9adb-4b97-8b00-2ac1cbc6e2c0',
     })
-
     @ApiResponse({
     status: 200,
     description: 'Trả về trạng thái giao dịch',
     type: CheckStatusResponseDto,
     })
-
     @ApiResponse({
     status: 400,
     description: 'Transaction ID is required',
