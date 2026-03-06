@@ -288,6 +288,14 @@ export class SmartCaController {
     }
 
 
+    @ApiOperation({ summary: 'Initiate signing process (Base64)' })
+    @ApiConsumes('application/json')
+    @ApiBody({ type: InitSignRequestDto })
+    @ApiResponse({
+        status: 200,
+        description: 'Signing initiated successfully',
+        type: InitSignResponseDto,
+    })
     @Post('sign-flow')
         async signFlow(
         @Body('fileBase64') fileBase64: string,

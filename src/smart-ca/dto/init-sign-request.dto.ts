@@ -34,4 +34,13 @@ export class InitSignRequestDto {
   })
   @IsString()
   role: string;
+
+  @ApiProperty({
+    description: 'Contract ID',
+    example: '8C4FE01B-7224-4A33-872B-76A47D14818F',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  contractId?: string;
 }
