@@ -30,7 +30,6 @@ export class SmartCaController {
         this.anycross_webhook_url = this.configService.get<string>('ANYCROSS_WEB_HOOK_URL') ?? '';
     }
 
-    @ApiTags('smart-ca')
     @ApiOperation({ summary: 'Initiate signing process (Base64)' })
     @ApiConsumes('application/json')
     @ApiBody({ type: InitSignRequestDto })
@@ -45,6 +44,7 @@ export class SmartCaController {
         @Body('fileName') fileName: string,     
         @Body('docType') docType: string,
         @Body('role') role: string,
+        @Body('contractId') contractId: string,
         // @Body('signerName') signerName: string,
     ) {
         this.logger.log('Received init-sign request with Base64');
@@ -69,7 +69,7 @@ export class SmartCaController {
         const hash = hashData.hashResps[0].hash;
         const fileID = hashData.hashResps[0].fileID;
         const transIdHash = hashData.tranId;
-        const docIdPayload = `${originalName}|${fileID}|${transIdHash}`;
+        const docIdPayload = `${originalName}|${fileID}|${transIdHash}|${contractId}`;
 
         // 3. Sign Hash
         const signData = await this.smartCaService.signHash(hash, serialNumber, docIdPayload);
@@ -90,11 +90,8 @@ export class SmartCaController {
         return result;
     }
 
-    @ApiTags('smart-ca')
     @ApiOperation({ summary: 'Webhook nhận thông tin ký số từ CA' })
-    @ApiBody({
-    type: VnptWebhookDto,
-    })
+    @ApiBody({ type: VnptWebhookDto, description: 'Dữ liệu webhook từ CA sau khi người dùng ký số trên app thành công' })
     @ApiResponse({
     status: 200,
     description: 'Webhook received successfully',
@@ -135,8 +132,8 @@ export class SmartCaController {
             return { status: 'received', detail: 'Invalid doc_id structure' };
         }
 
-        const [originalFileName, fileID, transIdHash] = parts;
-        console.log('parts', { fileID, transIdHash, originalFileName });
+        const [originalFileName, fileID, transIdHash, contractId] = parts;
+        console.log('parts', { fileID, transIdHash, originalFileName, contractId});
         this.logger.log(`[DEBUG-WEBHOOK] Target Hash: ${transIdHash}`);
 
         try {
@@ -176,6 +173,7 @@ export class SmartCaController {
                 originalFileName: originalFileName,
                 downloadUrl: downloadUrl,
                 status: 'success',
+                contractId: contractId,
                 signedAt: new Date().toISOString()
             };
 
@@ -198,7 +196,6 @@ export class SmartCaController {
         }
     }
 
-    @ApiTags('smart-ca')
     @ApiOperation({ summary: 'Kiểm tra trạng thái giao dịch ký số' })
     @ApiParam({
     name: 'transactionId',
@@ -289,4 +286,165 @@ export class SmartCaController {
             throw new HttpException('File not found', HttpStatus.NOT_FOUND);
         }
     }
+
+
+    @Post('sign-flow')
+        async signFlow(
+        @Body('fileBase64') fileBase64: string,
+        @Body('fileName') fileName: string,
+        @Body('docType') docType: string,
+        @Body('role') role: string,
+        @Body('contractId') contractId: string,
+        ) {
+
+        this.logger.log('===== START FULL SIGN FLOW =====');
+
+        console.log('INPUT DATA:', {
+            fileName,
+            docType,
+            role,
+            contractId,
+            base64Length: fileBase64?.length
+        });
+
+        // ===== STEP 1 INIT SIGN =====
+        console.log('STEP 1: INIT SIGN');
+
+        const init = await this.initSign(
+            fileBase64,
+            fileName,
+            docType,
+            role,
+            contractId
+        );
+
+        console.log('INIT SIGN RESULT');
+
+        const { transactionId, transIdHash, fileId, originalFileName } = init;
+
+        this.logger.log(`TransactionId: ${transactionId}`);
+
+        // ===== STEP 2 POLL STATUS =====
+
+        console.log('STEP 2: START POLLING CHECK STATUS');
+
+        let status: any;
+        let retry = 0;
+
+        while (retry < 20) {
+
+            console.log(`Polling attempt: ${retry + 1}`);
+
+            await new Promise(r => setTimeout(r, 3000));
+
+            status = await this.smartCaService.checkStatus(transactionId);
+
+            console.log('CHECK STATUS RESPONSE:', JSON.stringify(status, null, 2));
+
+            if (status.message === 'SUCCESS') {
+            console.log('SIGNATURE SUCCESS DETECTED');
+            break;
+            }
+
+            retry++;
+        }
+
+        if (status.message !== 'SUCCESS') {
+            console.error('SIGNATURE NOT COMPLETED');
+            throw new HttpException(
+            'User has not signed yet',
+            HttpStatus.BAD_REQUEST
+            );
+        }
+
+        // ===== STEP 3 GET SIGNATURE =====
+
+        console.log('STEP 3: EXTRACT SIGNATURE VALUE');
+
+        const signature_value = status.data.signatures[0].signature_value;
+
+        console.log('SIGNATURE VALUE:', signature_value);
+
+        const doc_id =
+            `${originalFileName}|${fileId}|${transIdHash}|${contractId}`;
+
+        console.log('DOC_ID GENERATED:', doc_id);
+
+        // ===== STEP 4 SIGN EXTERNAL =====
+
+        console.log('STEP 4: CALL signExternal');
+
+        const finalData = await this.smartCaService.signExternal(
+            transIdHash,
+            fileId,
+            signature_value
+        );
+
+        // console.log('SIGN EXTERNAL RESULT:', JSON.stringify(finalData, null, 2));
+
+        const signedPdfBase64 = finalData.signResps[0].signedData;
+
+        // console.log('SIGNED PDF BASE64 LENGTH:', signedPdfBase64.length);
+
+        const savedFileName =
+            await this.smartCaService.savePdfFile(
+            signedPdfBase64,
+            originalFileName
+            );
+
+        console.log('FILE SAVED:', savedFileName);
+
+        const downloadUrl =
+            `${this.be_url}/smart-ca/download/${savedFileName}`;
+
+        console.log('DOWNLOAD URL:', downloadUrl);
+
+        // ===== STEP 5 CALLBACK =====
+
+        console.log('STEP 5: CALLBACK ANYCROSS');
+
+        const anycrossPayload = {
+            transaction_id: transactionId,
+            fileName: savedFileName,
+            fileContent: signedPdfBase64,
+            originalFileName,
+            downloadUrl,
+            status: 'success',
+            contractId,
+            signedAt: new Date().toISOString()
+        };
+
+        // console.log('ANYCROSS PAYLOAD:', JSON.stringify(anycrossPayload, null, 2));
+
+        try {
+
+            const response = await axios.post(
+            this.anycross_webhook_url,
+            anycrossPayload
+            );
+
+            // console.log('ANYCROSS RESPONSE:', response.data);
+
+            this.logger.log('ANYCROSS CALLBACK SUCCESS');
+
+        } catch (err) {
+
+            console.error('ANYCROSS CALLBACK ERROR:', err.message);
+
+            this.logger.error(`ANYCROSS CALLBACK ERROR: ${err.message}`);
+
+        }
+
+        console.log('===== SIGN FLOW COMPLETED =====');
+
+        return {
+            message: 'Signing completed',
+            transactionId,
+            doc_id,
+            contractId,
+            signature_value,
+            downloadUrl
+        };
+
+        }
 }
