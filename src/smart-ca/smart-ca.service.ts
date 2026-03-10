@@ -34,13 +34,14 @@ export class SmartCaService {
         return uuidv4();
     }
 
-    async getCertificate() {
+    async getCertificate(userId: string) {
         this.logger.log('Getting certificate from SmartCA');
         const url = `${this.baseUrl}/credentials/get_certificate`;
         const data = {
             sp_id: this.clientId,
             sp_password: this.clientSecret,
-            user_id: this.userId,
+            // user_id: this.userId,
+            user_id: userId,
             transaction_id: this.getTransactionId(),
         };
 

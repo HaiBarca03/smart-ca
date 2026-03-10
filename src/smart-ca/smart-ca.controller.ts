@@ -19,7 +19,9 @@ import { InitSignRequestDto } from './dto/init-sign-request.dto';
 export class SmartCaController {
     private readonly logger = new Logger(SmartCaController.name);
     private readonly be_url: string;
-    private readonly anycross_webhook_url: string;
+    private readonly anycross_webhook_url_ben_a: string;
+    private readonly anycross_webhook_url_ben_b: string;
+    
 
     constructor(
         private readonly smartCaService: SmartCaService, 
@@ -27,7 +29,8 @@ export class SmartCaController {
         private larkDriveService: LarkDriveService
     ) { 
         this.be_url = this.configService.get<string>('BE_URL') ?? '';
-        this.anycross_webhook_url = this.configService.get<string>('ANYCROSS_WEB_HOOK_URL') ?? '';
+        this.anycross_webhook_url_ben_a = this.configService.get<string>('ANYCROSS_WEB_HOOK_URL_BEN_A') ?? '';
+        this.anycross_webhook_url_ben_b = this.configService.get<string>('ANYCROSS_WEB_HOOK_URL_BEN_B') ?? '';
     }
 
     @ApiOperation({ summary: 'Initiate signing process (Base64)' })
@@ -45,6 +48,7 @@ export class SmartCaController {
         @Body('docType') docType: string,
         @Body('role') role: string,
         @Body('contractId') contractId: string,
+        @Body('userId') userId: string,
         // @Body('signerName') signerName: string,
     ) {
         this.logger.log('Received init-sign request with Base64');
@@ -59,7 +63,8 @@ export class SmartCaController {
         const docId = removeVietnameseTones(originalName);
 
         // 1. Get Certificate
-        const certData = await this.smartCaService.getCertificate();
+        // const certData = await this.smartCaService.getCertificate();
+        const certData = await this.smartCaService.getCertificate(userId);
         const userCert = certData.data.user_certificates[0];
         const certBase64 = userCert.cert_data;
         const serialNumber = userCert.serial_number;
@@ -177,7 +182,7 @@ export class SmartCaController {
                 signedAt: new Date().toISOString()
             };
 
-            axios.post(this.anycross_webhook_url, anycrossPayload)
+            axios.post(this.anycross_webhook_url_ben_a, anycrossPayload)
             .then(() => this.logger.log(`[ANYCROSS] Đã bắn tin thành công cho file: ${fileName}`))
             .catch(err => this.logger.error(`[ANYCROSS] Lỗi khi bắn tin: ${err.message}`));
 
@@ -303,6 +308,7 @@ export class SmartCaController {
         @Body('docType') docType: string,
         @Body('role') role: string,
         @Body('contractId') contractId: string,
+        @Body('userId') userId: string,
         ) {
 
         this.logger.log('===== START FULL SIGN FLOW =====');
@@ -323,7 +329,8 @@ export class SmartCaController {
             fileName,
             docType,
             role,
-            contractId
+            contractId,
+            userId
         );
 
         console.log('INIT SIGN RESULT');
@@ -407,11 +414,10 @@ export class SmartCaController {
 
         console.log('DOWNLOAD URL:', downloadUrl);
 
-        // ===== STEP 5 CALLBACK =====
+        // ===== STEP 5: CALLBACK =====
+        console.log('STEP 5: CALLBACK THEO ROLE (BEN_A / BEN_B)');
 
-        console.log('STEP 5: CALLBACK ANYCROSS');
-
-        const anycrossPayload = {
+        const payload = {
             transaction_id: transactionId,
             fileName: savedFileName,
             fileContent: signedPdfBase64,
@@ -419,28 +425,48 @@ export class SmartCaController {
             downloadUrl,
             status: 'success',
             contractId,
-            signedAt: new Date().toISOString()
+            signedAt: new Date().toISOString(),
+            role, 
         };
 
-        // console.log('ANYCROSS PAYLOAD:', JSON.stringify(anycrossPayload, null, 2));
+        let webhookUrl: string | null = null;
+        let callbackName = 'Unknown';
 
-        try {
+        const normalizedRole = role?.toUpperCase().trim();  
 
-            const response = await axios.post(
-            this.anycross_webhook_url,
-            anycrossPayload
-            );
+        if (normalizedRole === 'BEN_A') {
+            webhookUrl = this.anycross_webhook_url_ben_a;  
+            callbackName = 'BEN_A';
+        } else if (normalizedRole === 'BEN_B') {
+            webhookUrl = this.anycross_webhook_url_ben_b;  
+            callbackName = 'BEN_B';
+        } else {
+            this.logger.warn(`Không hỗ trợ callback cho role: ${role || 'undefined'}`);
+        }
 
-            // console.log('ANYCROSS RESPONSE:', response.data);
+        if (webhookUrl) {
+            try {
+                const response = await axios.post(
+                    webhookUrl,
+                    payload,
+                    {
+                        timeout: 10000,  // tránh treo nếu webhook chậm
+                        headers: { 'Content-Type': 'application/json' },
+                    }
+                );
 
-            this.logger.log('ANYCROSS CALLBACK SUCCESS');
+                this.logger.log(`${callbackName} CALLBACK SUCCESS - Status: ${response.status}`);
 
-        } catch (err) {
+            } catch (err) {
+                const errorMsg = err.response 
+                    ? `${err.response.status} - ${JSON.stringify(err.response.data)}`
+                    : err.message;
 
-            console.error('ANYCROSS CALLBACK ERROR:', err.message);
-
-            this.logger.error(`ANYCROSS CALLBACK ERROR: ${err.message}`);
-
+                console.error(`${callbackName} CALLBACK ERROR:`, errorMsg);
+                this.logger.error(`${callbackName} CALLBACK ERROR: ${errorMsg}`);
+            }
+        } else {
+            this.logger.log('Bỏ qua callback vì role không khớp hoặc không có URL');
         }
 
         console.log('===== SIGN FLOW COMPLETED =====');
