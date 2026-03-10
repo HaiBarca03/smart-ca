@@ -43,4 +43,13 @@ export class InitSignRequestDto {
   @IsOptional()
   @IsString()
   contractId?: string;
+
+  @ApiProperty({
+    description: 'userId',
+    example: '11111111',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }
