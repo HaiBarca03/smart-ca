@@ -25,7 +25,7 @@ export class SmartCaService {
     ) {
         this.clientId = this.configService.get<string>('SMARTCA_CLIENT_ID') ?? '';
         this.clientSecret = this.configService.get<string>('SMARTCA_CLIENT_SECRET') ?? '';
-        this.userId = this.configService.get<string>('SMARTCA_USER_ID') ?? '';
+        // this.userId = this.configService.get<string>('SMARTCA_USER_ID') ?? '';
         this.baseUrl = this.configService.get<string>('SMARTCA_BASE_URL') ?? '';
         this.restUrl = this.configService.get<string>('SMARTCA_REST_URL') ?? '';
     }
@@ -36,6 +36,7 @@ export class SmartCaService {
 
     async getCertificate(userId: string) {
         this.logger.log('Getting certificate from SmartCA');
+        console.log('Getting certificate for userId:', userId);
         const url = `${this.baseUrl}/credentials/get_certificate`;
         const data = {
             sp_id: this.clientId,
@@ -156,7 +157,7 @@ export class SmartCaService {
         }
     }
 
-    async signHash(hash: string, serialNumber: string, docIdPayload: string) {
+    async signHash(hash: string, serialNumber: string, docIdPayload: string, userId: string) {
         this.logger.log(`[DEBUG] Step 3: Signing Hash. Payload: ${docIdPayload}`);
         const url = `${this.baseUrl}/signatures/sign`;
 
@@ -166,7 +167,8 @@ export class SmartCaService {
         const data: any = {
             sp_id: this.clientId,
             sp_password: this.clientSecret,
-            user_id: this.userId,
+            // user_id: this.userId,
+            user_id: userId,
             transaction_id: this.getTransactionId(),
             sign_files: [
                 {

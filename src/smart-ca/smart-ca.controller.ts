@@ -77,7 +77,7 @@ export class SmartCaController {
         const docIdPayload = `${originalName}|${fileID}|${transIdHash}|${contractId}`;
 
         // 3. Sign Hash
-        const signData = await this.smartCaService.signHash(hash, serialNumber, docIdPayload);
+        const signData = await this.smartCaService.signHash(hash, serialNumber, docIdPayload, userId);
         const transactionId = signData.data.transaction_id;
 
         const result = {
@@ -308,7 +308,7 @@ export class SmartCaController {
         @Body('docType') docType: string,
         @Body('role') role: string,
         @Body('contractId') contractId: string,
-        @Body('userId') userId: string,
+        @Body('userId') userIdS: string,
         ) {
 
         this.logger.log('===== START FULL SIGN FLOW =====');
@@ -330,7 +330,7 @@ export class SmartCaController {
             docType,
             role,
             contractId,
-            userId
+            userIdS
         );
 
         console.log('INIT SIGN RESULT');
