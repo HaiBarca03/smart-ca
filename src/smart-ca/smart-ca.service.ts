@@ -119,7 +119,7 @@ export class SmartCaService {
                 },
             ],
         };
-        this.logger.debug(`Calculate hash data: ${JSON.stringify(data)}`);
+        // this.logger.debug(`Calculate hash data: ${JSON.stringify(data)}`);
         try {
             const response = await firstValueFrom(this.httpService.post(url, data)) as AxiosResponse<any>;
             this.logger.debug(`Calculate hash response: ${JSON.stringify(response.data)}`);

@@ -308,7 +308,7 @@ export class SmartCaController {
         @Body('docType') docType: string,
         @Body('role') role: string,
         @Body('contractId') contractId: string,
-        @Body('userId') userIdS: string,
+        @Body('userId') userId: string,
         ) {
 
         this.logger.log('===== START FULL SIGN FLOW =====');
@@ -330,7 +330,7 @@ export class SmartCaController {
             docType,
             role,
             contractId,
-            userIdS
+            userId
         );
 
         console.log('INIT SIGN RESULT');
