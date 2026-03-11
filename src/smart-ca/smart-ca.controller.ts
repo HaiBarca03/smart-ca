@@ -92,7 +92,14 @@ export class SmartCaController {
         console.log(JSON.stringify(result, null, 2)); 
         console.log('====================================================');
 
-        return result;
+        // return result;
+        return {
+            message: 'Signing initiated. Please confirm on mobile app.',
+            transactionId,
+            transIdHash,
+            fileId: fileID,
+            originalFileName: originalName,
+        }
     }
 
     @ApiOperation({ summary: 'Webhook nhận thông tin ký số từ CA' })
@@ -332,6 +339,15 @@ export class SmartCaController {
             contractId,
             userId
         );
+
+        // const init = await this.smartCaService.initSignService(
+        //     fileBase64,
+        //     fileName,
+        //     docType,
+        //     role,
+        //     contractId,
+        //     userId
+        // );
 
         console.log('INIT SIGN RESULT');
 

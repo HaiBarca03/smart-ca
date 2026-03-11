@@ -257,4 +257,21 @@ export class SmartCaService {
             throw new HttpException('Failed to save PDF file', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+    async initSignService(
+    fileBase64: string,
+    fileName: string,
+    docType: string,
+    role: string,
+    contractId: string,
+    userId: string
+    ) {
+    return {
+        fileBase64,
+        fileName,
+        docType,
+        role,
+        contractId,
+        userId
+    };
+    }
 }
