@@ -1,8 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { CheckStatusDataDto } from "./check-status-data.dto";
+import { ApiProperty } from '@nestjs/swagger';
+import { CheckStatusDataDto } from './check-status-data.dto';
 
 export class CheckStatusResponseDto {
-
   @ApiProperty({
     example: 200,
   })

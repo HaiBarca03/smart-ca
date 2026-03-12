@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SignedFileDto {
-
   @ApiProperty({
     description: 'Document ID chứa originalFileName|fileID|transIdHash',
     example: 'contract.pdf|abc123|tran456',

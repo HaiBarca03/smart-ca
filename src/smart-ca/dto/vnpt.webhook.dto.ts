@@ -1,8 +1,7 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { SignedFileDto } from "./signed-file.dto";
+import { ApiProperty } from '@nestjs/swagger';
+import { SignedFileDto } from './signed-file.dto';
 
 export class VnptWebhookDto {
-
   @ApiProperty({
     description: 'Service Provider ID',
     example: 'SP123456',

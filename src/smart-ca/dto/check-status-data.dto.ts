@@ -3,7 +3,6 @@ import { CheckStatusSignatureDto } from './res-check-status-signature.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CheckStatusDataDto {
-
   @ApiProperty({
     example: 'c0aec40c-9adb-4b97-8b00-2ac1cbc6e2c0',
   })

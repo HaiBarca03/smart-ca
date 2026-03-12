@@ -9,4 +9,4 @@ import { LarkDriveService } from './lark-drive.service';
   controllers: [SmartCaController],
   providers: [SmartCaService, LarkDriveService],
 })
-export class SmartCaModule { }
+export class SmartCaModule {}

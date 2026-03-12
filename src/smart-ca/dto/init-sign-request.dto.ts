@@ -52,4 +52,13 @@ export class InitSignRequestDto {
   @IsOptional()
   @IsString()
   userId?: string;
+
+  @ApiProperty({
+    description: 'signerName',
+    example: 'signerName',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  signerName?: string;
 }
