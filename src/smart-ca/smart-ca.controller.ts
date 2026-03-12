@@ -103,7 +103,7 @@ export class SmartCaController {
       certBase64,
       docType,
       role,
-      signerName,
+      // signerName,
     );
     const hash = hashData.hashResps[0].hash;
     const fileID = hashData.hashResps[0].fileID;
@@ -603,7 +603,7 @@ export class SmartCaController {
   @Body('role') role: string,
   @Body('contractId') contractId: string,
   @Body('userId') userId: string,
-  @Body('signerName') signerName: string,
+  // @Body('signerName') signerName: string,
 ) {
   this.logger.log('===== START SIGN FLOW API =====');
 
@@ -614,7 +614,7 @@ export class SmartCaController {
     role,
     contractId,
     userId,
-    signerName,
+    // signerName,
   );
 
   const {

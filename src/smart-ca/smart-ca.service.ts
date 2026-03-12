@@ -75,7 +75,7 @@ export class SmartCaService {
     certBase64: string,
     docType: string,
     role: string,
-    signerName: string,
+    // signerName: string,
   ) {
     this.logger.debug(`Certificate: ${certBase64.substring(0, 50)}...`);
     const url = `${this.restUrl}/signature/calculateHash`;
@@ -90,9 +90,9 @@ export class SmartCaService {
       throw new Error(`Không tìm thấy tọa độ ký cho vai trò: ${role}`);
     }
     let targetPage = config.page;
-    const imagePath = path.join(process.cwd(), 'src', 'utils', 'dau.png');
-    const imageBuffer = await fs.readFile(imagePath);
-    const imageBase64 = imageBuffer.toString('base64');
+    // const imagePath = path.join(process.cwd(), 'src', 'utils', 'dau.png');
+    // const imageBuffer = await fs.readFile(imagePath);
+    // const imageBase64 = imageBuffer.toString('base64');
     const now = new Date();
     const dateStr = now.toLocaleDateString('vi-VN', {
       day: '2-digit',
@@ -107,7 +107,7 @@ export class SmartCaService {
 
     const signatureText =
       `Verified by: VNPT SmartCA\n` +
-      `Signed by: ${signerName}\n` +
+      // `Signed by: ${signerName}\n` +
       `Signed date: ${dateStr} ${timeStr}`;
 
     const data: CalculateHashDto = {
@@ -126,7 +126,7 @@ export class SmartCaService {
             fontSize: 8,
             // customImage: imageBase64,
             fontColor: 'FF0000',
-            signatureText: signatureText,
+            // signatureText: signatureText,
             signatures: [
               {
                 page: targetPage,
@@ -341,7 +341,7 @@ export class SmartCaService {
   role: string,
   contractId: string,
   userId: string,
-  signerName: string,
+  // signerName: string,
 ) {
   this.logger.log('===== START FULL SIGN FLOW (SERVICE) =====');
 
@@ -365,7 +365,7 @@ export class SmartCaService {
     certBase64,
     docType,
     role,
-    signerName,
+    // signerName,
   );
 
   const hash = hashData.hashResps[0].hash;
