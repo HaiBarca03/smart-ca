@@ -641,7 +641,7 @@ export class SmartCaController {
   let webhookUrl: string | null = null;
 
   const normalizedRole = role?.toUpperCase().trim();
-
+  this.logger.debug('normalizedRole', normalizedRole)
   if (normalizedRole === 'BEN_A') {
     webhookUrl = this.anycross_webhook_url_ben_a;
   } else if (normalizedRole === 'BEN_B') {
@@ -664,6 +664,7 @@ export class SmartCaController {
   return {
     message: 'Signing completed',
     transactionId,
+    signedPdfBase64: signedPdfBase64,
     contractId,
     downloadUrl,
   };
